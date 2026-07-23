@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المهندس - المنظومة الهندسية الشاملة</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --chat-bg: #1e293b;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --text-main: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        header { background-color: var(--chat-bg); padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        header h1 { font-size: 1.25rem; color: #60a5fa; display: flex; align-items: center; gap: 10px; }
+        .admin-btn { background: var(--border); color: var(--text-main); border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; transition: 0.2s; }
+        .admin-btn:hover { background: var(--accent); }
+        .main-container { flex: 1; display: flex; overflow: hidden; position: relative; }
+        .chat-section { flex: 1; display: flex; flex-direction: column; height: 100%; }
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 75%; padding: 12px 16px; border-radius: 10px; line-height: 1.6; font-size: 0.95rem; word-wrap: break-word; }
+        .message.user { background-color: var(--accent); color: white; align-self: flex-start; }
+        .message.bot { background-color: var(--chat-bg); color: var(--text-main); align-self: flex-end; border: 1px solid var(--border); }
+        .chat-input-area { padding: 15px 20px; background-color: var(--chat-bg); border-top: 1px solid var(--border); display: flex; gap: 10px; }
+        .chat-input-area input { flex: 1; background: var(--bg-color); border: 1px solid var(--border); padding: 12px 15px; border-radius: 8px; color: white; font-size: 1rem; outline: none; }
+        .chat-input-area input:focus { border-color: var(--accent); }
+        .chat-input-area button { background: var(--accent); color: white; border: none; padding: 0 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .chat-input-area button:hover { background: var(--accent-hover); }
+        
+        /* لوحة التحكم والكتب */
+        .admin-modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: none; flex-direction: column; padding: 30px; z-index: 100; overflow-y: auto; }
+        .admin-modal.active { display: flex; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        .close-modal { background: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; }
+        .book-upload-box { background: var(--chat-bg); border: 2px dashed var(--border); padding: 25px; border-radius: 10px; text-align: center; margin-bottom: 20px; }
+        .book-upload-box input[type="file"] { display: none; }
+        .upload-label { background: var(--accent); color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; display: inline-block; margin-top: 10px; }
+        .books-list { display: flex; flex-direction: column; gap: 10px; }
+        .book-item { background: var(--chat-bg); padding: 12px 15px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .book-item button { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        
+        /* شاشة كلمة السر */
+        .password-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); display: none; justify-content: center; align-items: center; z-index: 200; }
+        .password-box { background: var(--chat-bg); padding: 30px; border-radius: 12px; border: 1px solid var(--border); width: 350px; text-align: center; display: flex; flex-direction: column; gap: 15px; }
+        .password-box input { background: var(--bg-color); border: 1px solid var(--border); padding: 12px; border-radius: 6px; color: white; text-align: center; font-size: 1.1rem; }
+        .password-box button { background: var(--accent); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⚙️ المهندس - المنظومة الهندسية الميدانية</h1>
+        <button class="admin-btn" onclick="requestAdminAccess()">إدارة ورفع الكتب</button>
+    </header>
+
+    <div class="main-container">
+        <!-- قسم الدردشة -->
+        <div class="chat-section">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">أهلاً بك يا مهندس. أنا جاهز للإجابة على استفساراتك الهندسية بدقة وعملية من واقع المراجع والكتب المتاحة. تفضل بطرح سؤالك.</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="userInput" placeholder="اكتب سؤالك الهندسي هنا..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">إرسال</button>
+            </div>
+        </div>
+
+        <!-- نافذة إدخال كلمة السر -->
+        <div class="password-overlay" id="passwordOverlay">
+            <div class="password-box">
+                <h3>أدخل كلمة المرور الإدارية</h3>
+                <input type="password" id="adminPasswordInput" placeholder="أدخل كلمة السر">
+                <button onclick="verifyPassword()">دخول للإدارة</button>
+                <button style="background: transparent; color: var(--text-secondary);" onclick="closePasswordModal()">إلغاء</button>
+            </div>
+        </div>
+
+        <!-- لوحة التحكم بالكتب -->
+        <div class="admin-modal" id="adminModal">
+            <div class="admin-header">
+                <h2>إدارة مكتبة الكتب والمراجع</h2>
+                <button class="close-modal" onclick="closeAdminModal()">إغلاق الإدارة</button>
+            </div>
+            <div class="book-upload-box">
+                <p>ارفع كتبك ومرجعك الهندسية (PDF أو نصية) ليتم الاعتماد عليها كلياً:</p>
+                <label class="upload-label">
+                    اختر ملف كتاب
+                    <input type="file" id="bookFile" multiple onchange="uploadBooks(event)">
+                </label>
+            </div>
+            <div class="books-list" id="booksList">
+                <p style="color: var(--text-secondary); text-align: center;">لا توجد كتب مرفوعة حالياً. ابدأ برفع المراجع الآن.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedBooks = JSON.parse(localStorage.getItem('engineer_books') || '[]');
+        renderBooksList();
+
+        function requestAdminAccess() {
+            document.getElementById('passwordOverlay').style.display = 'flex';
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('adminPasswordInput').focus();
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordOverlay').style.display = 'none';
+        }
+
+        function verifyPassword() {
+            const pass = document.getElementById('adminPasswordInput').value;
+            if (pass === '555556789') {
+                document.getElementById('passwordOverlay').style.display = 'none';
+                document.getElementById('adminModal').classList.add('active');
+            } else {
+                alert('كلمة المرور غير صحيحة!');
+            }
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').classList.remove('active');
+        }
+
+        function uploadBooks(event) {
+            const files = event.target.files;
+            for (let file of files) {
+                uploadedBooks.push({ name: file.name, size: (file.size / 1024 / 1024).toFixed(2) + ' MB' });
+            }
+            localStorage.setItem('engineer_books', JSON.stringify(uploadedBooks));
+            renderBooksList();
+            alert('تم رفع الكتاب وإضافته للمنظومة بنجاح!');
+        }
+
+        function deleteBook(index) {
+            uploadedBooks.splice(index, 1);
+            localStorage.setItem('engineer_books', JSON.stringify(uploadedBooks));
+            renderBooksList();
+        }
+
+        function renderBooksList() {
+            const listEl = document.getElementById('booksList');
+            if (uploadedBooks.length === 0) {
+                listEl.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">لا توجد كتب مرفوعة حالياً. ابدأ برفع المراجع الآن.</p>';
+                return;
+            }
+            listEl.innerHTML = uploadedBooks.map((book, idx) => `
+                <div class="book-item">
+                    <span>📚 ${book.name} (${book.size})</span>
+                    <button onclick="deleteBook(${idx})">حذف</button>
+                </div>
+            `).join('');
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+            
+            // رسالة المستخدم
+            chatMessages.innerHTML += `<div class="message user">${text}</div>`;
+            input.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // محاكاة رد البوت الهندسي المباشر
+            setTimeout(() => {
+                let botReply = generateEngineeringReply(text);
+                chatMessages.innerHTML += `<div class="message bot">${botReply}</div>`;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 600);
+        }
+
+        function generateEngineeringReply(query) {
+            const q = query.toLowerCase();
+            if (q.includes('خرسانة') || q.includes('أسمنت') || q.includes('مدني')) {
+                return 'إجهاد الكسر المميز للخرسانة (f\'cu) يُحدد عادةً بعد 28 روز من الصب. في الأعمال الإنشائية الحاملة، يُفضل استخدام خرسانة لا تقل مقاوماتها عن 25 ميجا باسكال، مع ضرورة الالتزام بنسب المكونات ومعدلات المياه إلى الأسمنت (w/c ratio) لتجنب التعشيش وتقليل الانكماش.';
+            } else if (q.includes('ماسورة') || q.includes('بترول') || q.includes('ضخ')) {
+                return 'حساب هبوط الضغط (Pressure Drop) في خطوط أنابيب نقل الهيدروكربونات يعتمد على معادلة دارسي-ويسباخ (Darcy-Weisbach)، مع مراعاة رقم رينولدز وخشونة الجدار الداخلي للأنبوب، وتحديد سرعة التدفق الحرجة لمنع التآكل أو النحر الداخلي.';
+            } else if (q.includes('عزم') || q.includes('ميكانيكا') || q.includes('محرك')) {
+                return 'عزم الدوران (Torque) يتناسب طردياً مع القدرة وعكسياً مع السرعة الزاوية. في تصميم الأنظمة الميكانيكية، يجب حساب معاملات الأمان (Factor of Safety) ضد الإجهاد الدوراني والقص لتفادي الانهيار المفاجئ.';
+            } else {
+                return 'تمت مراجعة القواعد والكتب الهندسية المتاحة بخصوص استفسارك. التنفيذ الهندسي السليم يتطلب مراجعة الأكواد المعيارية، ضبط حسابات الأحمال، والالتزام بخطوات الموقع المعتمدة لتفادي أي عيوب إنشائية أو تشغيلية.';
+            }
+        }
+    </script>
+</body>
+</html>
